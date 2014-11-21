@@ -13,10 +13,17 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONException;
+import net.sf.json.JSONObject;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
@@ -29,8 +36,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.ByteArrayBody;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.protocol.HTTP;
@@ -38,24 +43,34 @@ import org.apache.http.util.EntityUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
+import org.zarroboogs.study.net.BroserContent;
+import org.zarroboogs.study.net.HttpFactory;
+import org.zarroboogs.study.net.ResponseUtils;
+
+import com.google.gson.Gson;
+import com.wolf.weibo.httpclient.javabean.PreLonginBean;
+import com.wolf.weibo.httpclient.utils.Utils;
 
 public class Sina {
-
-    /**
-     * @param args
-     * @throws IOException
-     */
+    
+    
+    private static BroserContent mBroserContent = BroserContent.getInstance();
+    
+    
+    
     public static void main(String[] args) throws IOException {
-        WeiBoUser user = login("", "");
+        WeiBoUser user = login("86118@163.com", "Andforce!@#");
         System.out.println(user.getUserName());
     }
 
     public static WeiBoUser login(String u, String p) {
 
+        HttpClient client = mBroserContent.getHttpClient();
+
+        
+        
+        
         WeiBoUser user = null;
-
-        DefaultHttpClient client = new DefaultHttpClient();
-
         try {
             // 获得rsaPubkey,rsakv,servertime等参数值
             HashMap<String, String> params = preLogin(encodeAccount(u), client);
@@ -187,20 +202,7 @@ public class Sina {
         return user;
     }
 
-    /**
-     * 根据URL,get网页
-     * @param url
-     * @throws IOException
-     */
-    private static String get(String url, DefaultHttpClient client) throws IOException {
-        HttpGet get = new HttpGet(url);
-        HttpResponse response = client.execute(get);
-        System.out.println(response.getStatusLine());
-        HttpEntity entity = response.getEntity();
-        String result = dump(entity);
-        get.abort();
-        return result;
-    }
+
 
     /**
      * 新浪微博预登录，获取密码加密公钥
@@ -208,19 +210,23 @@ public class Sina {
      * @return 返回从结果获取的参数的哈希表
      * @throws IOException
      */
-    private static HashMap<String, String> preLogin(String unameBase64, DefaultHttpClient client)
-            throws IOException {
-        String url = "http://login.sina.com.cn/sso/prelogin.php?entry=weibo&callback=sinaSSOController.preloginCallBack&su=&rsakt=mod&client=ssologin.js(v1.4.5)&_="
-                + "_=" + new Date().getTime();
-        return getParaFromResult(get(url, client));
-    }
+    private static HashMap<String, String> preLogin(String unameBase64, HttpClient client)throws IOException {
+        
+        String url = "http://login.sina.com.cn/sso/prelogin.php?entry=weibo&callback=sinaSSOController.preloginCallBack&su=&rsakt=mod&client=ssologin.js(v1.4.18)&_=" + new Date().getTime();
 
-    /**
-     * 从新浪返回的结果字符串中获得参数
-     * @param result
-     * @return
-     */
-    private static HashMap<String, String> getParaFromResult(String result) {
+        HttpGet httpGet = HttpFactory.createHttpGet(url, null);
+        HttpResponse httpResponse = client.execute(httpGet);
+        String result = ResponseUtils.getResponseLines(true, httpResponse);
+        Pattern p = Pattern.compile("\\{([^)]*?)\\}");
+        Matcher matcher = p.matcher(result);
+        if (matcher.find()) {
+            result = matcher.group();
+        }
+        System.out.println("Pre Result : " + result);
+//        Gson gson = new Gson();
+//        PreLonginBean preLonginBean = gson.fromJson(result, PreLonginBean.class);
+//
+//        HashMap<String, String> hm = (HashMap<String, String>) Utils.JsonHashMap(JSONArray.fromString(result));
         HashMap<String, String> hm = new HashMap<String, String>();
         result = result.substring(result.indexOf("{") + 1, result.indexOf("}"));
         String[] r = result.split(",");
@@ -234,30 +240,26 @@ public class Sina {
             hm.put(temp[0], temp[1]);
         }
         return hm;
+    
     }
 
+    
     /**
      * 打印页面
      * @param entity
      * @throws IOException
      */
     private static String dump(HttpEntity entity) throws IOException {
-        BufferedReader br = new BufferedReader(new InputStreamReader(
-                entity.getContent(), "utf8"));
+        BufferedReader br = new BufferedReader(new InputStreamReader(entity.getContent(), "utf8"));
         return IOUtils.toString(br);
     }
 
-    public static boolean Share(String u, String p, String content, String pic,
-            String surl) {
-        HttpClient client = new DefaultHttpClient(
-                new ThreadSafeClientConnManager());
-
-        client.getParams().setParameter(
-                HttpConnectionParams.CONNECTION_TIMEOUT, 5000);
+    public static boolean Share(String u, String p, String content, String pic, String surl) {
+        HttpClient client =mBroserContent.getHttpClient();
 
         try {
             HttpPost post = new HttpPost(
-                    "http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.3.22)");
+                    "http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.18)");
 
             String data = getServerTime();
 
@@ -347,14 +349,13 @@ public class Sina {
     }
 
     public static boolean AddW(String u, String p, String text, byte[] pic) {
-        DefaultHttpClient client = new DefaultHttpClient(
-                new ThreadSafeClientConnManager());
+        HttpClient client = mBroserContent.getHttpClient();
 
         try {
             HashMap<String, String> params = preLogin(encodeAccount(u), client);
 
             HttpPost post = new HttpPost(
-                    "http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.5)");
+                    "http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.18)");
             post
                     .setHeader("Accept",
                             "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
