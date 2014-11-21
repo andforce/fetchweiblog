@@ -12,6 +12,7 @@ public class Constaces {
     public static final String exectime = "exectime";
     
     
-    
-    public static final String LOGIN_FIRST_URL = "http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.18)";
+    public static final String SSOLOGIN_JS = "ssologin.js(v1.4.18)";
+    public static final String LOGIN_FIRST_URL = "http://login.sina.com.cn/sso/login.php?client="+ SSOLOGIN_JS;
+
 }

@@ -14,7 +14,7 @@ public class ResponseUtils {
 	 * @param response
 	 * @return
 	 */
-	public static String getResponseLines(boolean isDebug, HttpResponse response) {
+	public static String getResponseLines(boolean isDebug, HttpResponse response, String encode) {
 		String allResponse = "";
 		if (response == null) {
 			return null;
@@ -26,7 +26,7 @@ public class ResponseUtils {
 			try {
 				in = entity.getContent();
 				String str = "";
-				BufferedReader br = new BufferedReader(new InputStreamReader(in,"UTF-8"));
+				BufferedReader br = new BufferedReader(new InputStreamReader(in,encode));
 				while ((str = br.readLine()) != null) {
 					allResponse += str + "\n";
 				}

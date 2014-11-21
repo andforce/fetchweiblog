@@ -46,6 +46,7 @@ import org.zarroboogs.study.net.ResponseUtils;
 
 import com.google.gson.Gson;
 import com.wolf.weibo.httpclient.javabean.Constaces;
+import com.wolf.weibo.httpclient.javabean.HasloginBean;
 import com.wolf.weibo.httpclient.javabean.PreLonginBean;
 
 public class Sina {
@@ -94,18 +95,18 @@ public class Sina {
             nvps.add(new BasicNameValuePair("url","http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack"));
             nvps.add(new BasicNameValuePair("useticket", "1"));
             nvps.add(new BasicNameValuePair("vsnf", "1"));
-            HttpPost post = HttpFactory.createHttpPost(Constaces.LOGIN_FIRST_URL,postHeader, nvps);
 
+            HttpPost post = HttpFactory.createHttpPost(Constaces.LOGIN_FIRST_URL,postHeader, nvps);
             HttpResponse response = client.execute(post);
-            String entity = EntityUtils.toString(response.getEntity(), "GBK");
+            String entity = ResponseUtils.getResponseLines(true, response, "GBK");//EntityUtils.toString(response.getEntity(), "GBK");
             System.out.println("\r\r执行加密登陆：\r" + entity);
 
             // try{sinaSSOController.setCrossDomainUrlList({"retcode":0,"arrURL":["http:\/\/crosdom.weicaifu.com\/sso\/crosdom?action=login"]});}catch(e){}
             // try{sinaSSOController.crossDomainAction('login',function(){location.replace('http://passport.weibo.com/wbsso/login?url=http%3A%2F%2Fweibo.com%2Fajaxlogin.php%3Fframelogin%3D1%26callback%3Dparent.sinaSSOController.feedBackUrlCallBack%26sudaref%3Dweibo.com&ticket=ST-MTg3ODIzMDA3NQ==-1416290371-xd-DA438CD75651470DE3717B9B3E4B5EE9&retcode=0');});}catch(e){}
-
-            String sp = "url=";
+//http://crosdom.weicaifu.com/sso/crosdom?action=login
+            String splitby = "url=";
             if (true) {
-                String tmp = entity.split(sp)[1];
+                String tmp = entity.split(splitby)[1];
                 String url = tmp.split("retcode=0")[0] + "retcode=0";
 
                 String strScr = ""; // 首页用户script形式数据
@@ -118,16 +119,29 @@ public class Sina {
 
                 response = client.execute(getMethod);
                 entity = EntityUtils.toString(response.getEntity(), "GBK");
-                System.out.println("LOGing: " + entity);
+                System.out.println("HAS_LOGIN: " + entity);
+                
+                
+                Gson gson = new Gson();
+                String loginResponse = getJsonString(entity) + "}";
+                System.out.println("json: " + loginResponse);
 
-                nick = entity.substring(entity.indexOf("displayname") + 14,
-                        entity.lastIndexOf("userdomain") - 3).trim();
-
-                url = entity.substring(entity.indexOf("userdomain") + 13,
-                        entity.lastIndexOf("\""));
+                HasloginBean hasloginBean = gson.fromJson(loginResponse, HasloginBean.class);
+                
+                nick = hasloginBean.getUserinfo().getDisplayname();
+                url = hasloginBean.getUserinfo().getUserdomain();
+                
                 getMethod = new HttpGet("http://weibo.com/" + url);
                 response = client.execute(getMethod);
                 entity = EntityUtils.toString(response.getEntity());
+                System.out.println(entity);
+                System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++");
+
+                
+                
+                
+                
+                
                 Document doc = Jsoup.parse(entity);
                 Elements els = doc.select("script");
 
@@ -189,6 +203,18 @@ public class Sina {
         return pass;
     }
 
+    private static String buildPreLoginUrl(String su, String ssoLoginjs ,String time){
+        String url = "http://login.sina.com.cn/sso/prelogin.php?";
+        url = url + "entry=weibo&";
+        url = url + "callback=sinaSSOController.preloginCallBack&";
+        url = url + "su=" + su + "&";
+        url = url + "rsakt=mod&";
+        url = url + "client="+ ssoLoginjs + "&";
+        // time = new Date().getTime();
+        url = url + "_=" + time;
+        return url;
+
+    }
     /**
      * 新浪微博预登录，获取密码加密公钥
      * @param unameBase64
@@ -196,35 +222,17 @@ public class Sina {
      * @throws IOException
      */
     private static PreLonginBean preLogin(String unameBase64, HttpClient client) throws IOException {
-
-        String url = "http://login.sina.com.cn/sso/prelogin.php?entry=weibo&callback=sinaSSOController.preloginCallBack&su=&rsakt=mod&client=ssologin.js(v1.4.18)&_="
-                + new Date().getTime();
+//        1416557391245
+        long time = new Date().getTime();
+        String url = buildPreLoginUrl(unameBase64, Constaces.SSOLOGIN_JS, time + "");
 
         HttpGet httpGet = HttpFactory.createHttpGet(url, null);
         HttpResponse httpResponse = client.execute(httpGet);
-        String result = ResponseUtils.getResponseLines(true, httpResponse);
-        Pattern p = Pattern.compile("\\{([^)]*?)\\}");
-        Matcher matcher = p.matcher(result);
-        if (matcher.find()) {
-            result = matcher.group();
-        }
+        String result = ResponseUtils.getResponseLines(true, httpResponse, "GBK");
+        result = getJsonString(result);
         System.out.println("Pre Result : " + result);
         Gson gson = new Gson();
         PreLonginBean preLonginBean = gson.fromJson(result, PreLonginBean.class);
-
-        // HashMap<String, String> hm = new HashMap<String, String>();
-        // result = result.substring(result.indexOf("{") + 1, result.indexOf("}"));
-        // String[] r = result.split(",");
-        // String[] temp;
-        // for (int i = 0; i < r.length; i++) {
-        // temp = r[i].split(":");
-        // for (int j = 0; j < 2; j++) {
-        // if (temp[j].contains("\""))
-        // temp[j] = temp[j].substring(1, temp[j].length() - 1);
-        // }
-        // hm.put(temp[0], temp[1]);
-        // System.out.println("Prase for string :  key:" + temp[0] + "  valuse: " + temp[1]);
-        // }
         System.out.println("\r----------------------------------------------------");
         System.out.println("exectime:        " + preLonginBean.getExectime());
         System.out.println("nonce:        " + preLonginBean.getNonce());
@@ -236,6 +244,15 @@ public class Sina {
         System.out.println("----------------------------------------------------\r");
         return preLonginBean;
 
+    }
+
+    private static String getJsonString(String result) {
+        Pattern p = Pattern.compile("\\{([^)]*?)\\}");
+        Matcher matcher = p.matcher(result);
+        if (matcher.find()) {
+            result = matcher.group();
+        }
+        return result;
     }
 
     /**
@@ -531,6 +548,7 @@ public class Sina {
             System.out.println(e.getMessage());
             e.printStackTrace();
         }
+        System.out.println("SU==================" + userName);
         return userName;
     }
 
