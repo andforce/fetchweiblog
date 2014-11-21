@@ -4,6 +4,7 @@ package com.wolf.weibo.httpclient;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -26,17 +27,22 @@ import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.cookie.Cookie;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.ByteArrayBody;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
+import org.apache.http.util.TextUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
@@ -137,9 +143,13 @@ public class Sina {
                 System.out.println(entity);
                 System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++");
 
-                
-                
-                
+                //mBroserContent, "http://widget.weibo.com/public/aj_addMblog.php", app_src, textContent, mCookie, pid
+                List<Cookie> cookies = mBroserContent.getCookieStore().getCookies();
+                String cookieString = "";
+                for (Cookie cookie : cookies) {
+                    cookieString = cookieString + cookie.getName() + "=" + cookie.getValue() + "; ";
+                }
+                sendWeibo(mBroserContent, "http://widget.weibo.com/public/aj_addMblog.php", "3G5oUM", "123456789", cookieString, null);
                 
                 
                 Document doc = Jsoup.parse(entity);
@@ -187,6 +197,126 @@ public class Sina {
         return user;
     }
 
+    
+    public static boolean sendWeibo(BroserContent broserContent, String url, String app_src, String content, String cookie, String pid) {
+        CloseableHttpClient httpClient = broserContent.getHttpClient();
+        // http://widget.weibo.com/dialog/PublishWeb.php?button=public&app_src=3G5oUM
+        // http://widget.weibo.com/public/aj_addMblog.php
+        Header[] loginHeaders = {
+                new BasicHeader("Accept", "*/*"),
+                new BasicHeader("Accept-Encoding", "gzip, deflate"),
+                new BasicHeader("Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4"),
+                // new BasicHeader("Cache-Control", "max-age=0"),
+                new BasicHeader("Connection", "keep-alive"),
+                new BasicHeader("Content-Type", "application/x-www-form-urlencoded"),
+                new BasicHeader("Host", "widget.weibo.com"),
+                new BasicHeader("Origin", "http://widget.weibo.com"),
+                new BasicHeader("X-Requested-With", "XMLHttpRequest"),
+                new BasicHeader("Cookie", cookie),
+                new BasicHeader("Referer", "http://widget.weibo.com/topics/topic_vote_base.php?" + "tag=Weibo&app_src=" + app_src
+                        + "&isshowright=0&language=zh_cn"),
+                new BasicHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                        + "Chrome/34.0.1847.137 Safari/537.36 LBBROWSER"), };
+
+        List<NameValuePair> loginParams = new ArrayList<NameValuePair>();
+        loginParams.add(new BasicNameValuePair("app_src", app_src));
+        loginParams.add(new BasicNameValuePair("content", content));
+        if (!TextUtils.isEmpty(pid)) {
+            loginParams.add(new BasicNameValuePair("pic_id", pid));
+        }
+        loginParams.add(new BasicNameValuePair("return_type", "2"));
+        loginParams.add(new BasicNameValuePair("refer", ""));
+        loginParams.add(new BasicNameValuePair("vsrc", "base_topic"));
+        loginParams.add(new BasicNameValuePair("wsrc", "app_topic_base"));
+        loginParams.add(new BasicNameValuePair("ext", "login=>1;url=>"));
+        loginParams.add(new BasicNameValuePair("html_type", "2"));
+        loginParams.add(new BasicNameValuePair("_t", "0"));
+        // loginParams.add(new BasicNameValuePair("Cookie", cookie));
+
+        HttpPost logInPost = HttpFactory.createHttpPost(url, loginHeaders, loginParams);
+
+        // logInPost.addHeader("Cookie", cookie);
+        CloseableHttpResponse logInResponse = null;
+        String allResponse = "";
+        boolean isSuccess = false;
+        try {
+            logInResponse = httpClient.execute(logInPost);
+            HttpEntity mEntity = logInResponse.getEntity();
+            if (mEntity != null) {
+                InputStream in;
+                try {
+                    in = mEntity.getContent();
+                    String str = "";
+                    BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+                    while ((str = br.readLine()) != null) {
+                        allResponse += str;
+                    }
+
+                } catch (IllegalStateException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                    System.out.println("Error IllegalStateException----");
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                    System.out.println("Error IOException");
+                }
+            }
+            
+            System.out.println("==========================send resule:\r\n" + allResponse);
+            Gson gson = new Gson();
+            WeiBoPostResult result = gson.fromJson(allResponse, WeiBoPostResult.class);
+            if (logInResponse.getStatusLine().getStatusCode() == 200) {
+                if (result != null && result.getCode() == 100000) {
+                    isSuccess = true;
+                } else {
+                    isSuccess = false;
+                }
+            }
+        } catch (ClientProtocolException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            isSuccess = false;
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            isSuccess = false;
+        } finally {
+            try {
+                if (logInResponse != null) {
+                    logInResponse.close();
+                }
+            } catch (IOException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+        }
+        return isSuccess;
+    }
+    
+    public static class WeiBoPostResult implements java.io.Serializable {
+        private static final long serialVersionUID = 2670736249286930507L;
+        private int code = 0;
+        private String msg = "";
+
+        public int getCode() {
+            return code;
+        }
+
+        public void setCode(int code) {
+            this.code = code;
+        }
+
+        public String getMsg() {
+            return msg;
+        }
+
+        public void setMsg(String msg) {
+            this.msg = msg;
+        }
+
+    }
+    
     private static String getPassWord(String p, PreLonginBean params) throws ScriptException, NoSuchMethodException {
         ScriptEngineManager sem = new ScriptEngineManager();
         ScriptEngine se = sem.getEngineByName("javascript");

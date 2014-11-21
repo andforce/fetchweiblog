@@ -44,6 +44,7 @@ public class BroserContent {
          * @return
          */
         public static synchronized HttpClient creteHttpClient(CookieStore mCookieStore, HttpHost... mProxyHost) {
+
             if (null == customerHttpClient) {
                 HttpClientBuilder customBuilder = HttpClients.custom();
 
