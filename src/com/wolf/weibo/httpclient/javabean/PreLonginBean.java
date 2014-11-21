@@ -18,7 +18,7 @@ public class PreLonginBean implements Serializable {
     private String pcid;
     private String nonce;
     private String pubkey;
-    private String rsakey;
+    private String rsakv;
     private int exectime;
 
     public String getRetcode() {
@@ -61,12 +61,12 @@ public class PreLonginBean implements Serializable {
         this.pubkey = pubkey;
     }
 
-    public String getRsakey() {
-        return rsakey;
+    public String getRsakv() {
+        return rsakv;
     }
 
-    public void setRsakey(String rsakey) {
-        this.rsakey = rsakey;
+    public void setRsakv(String rsakey) {
+        this.rsakv = rsakey;
     }
 
     public String getExectime() {

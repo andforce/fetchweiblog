@@ -10,4 +10,8 @@ public class Constaces {
     public static final String pubkey = "pubkey";
     public static final String rsakv = "rsakv";
     public static final String exectime = "exectime";
+    
+    
+    
+    public static final String LOGIN_FIRST_URL = "http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.18)";
 }

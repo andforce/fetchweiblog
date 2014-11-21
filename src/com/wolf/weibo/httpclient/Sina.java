@@ -11,22 +11,18 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
-
-import net.sf.json.JSONArray;
-import net.sf.json.JSONException;
-import net.sf.json.JSONObject;
+import javax.script.ScriptException;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -36,6 +32,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.ByteArrayBody;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.protocol.HTTP;
@@ -48,16 +45,13 @@ import org.zarroboogs.study.net.HttpFactory;
 import org.zarroboogs.study.net.ResponseUtils;
 
 import com.google.gson.Gson;
+import com.wolf.weibo.httpclient.javabean.Constaces;
 import com.wolf.weibo.httpclient.javabean.PreLonginBean;
-import com.wolf.weibo.httpclient.utils.Utils;
 
 public class Sina {
-    
-    
+
     private static BroserContent mBroserContent = BroserContent.getInstance();
-    
-    
-    
+
     public static void main(String[] args) throws IOException {
         WeiBoUser user = login("86118@163.com", "Andforce!@#");
         System.out.println(user.getUserName());
@@ -67,75 +61,53 @@ public class Sina {
 
         HttpClient client = mBroserContent.getHttpClient();
 
-        
-        
-        
         WeiBoUser user = null;
         try {
             // 获得rsaPubkey,rsakv,servertime等参数值
-            HashMap<String, String> params = preLogin(encodeAccount(u), client);
+            PreLonginBean params = preLogin(encodeAccount(u), client);
 
-            HttpPost post = new HttpPost( "http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.18)");
-            post .setHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-            post .setHeader("User-Agent",  "Mozilla/5.0 (Windows NT 5.1; rv:9.0.1) Gecko/20100101 Firefox/9.0.1");
-            post.setHeader("Accept-Language", "zh-cn,zh;q=0.5");
-            post.setHeader("Accept-Charset", "GB2312,utf-8;q=0.7,*;q=0.7");
-            post.setHeader("Referer","http://weibo.com/?c=spr_web_sq_firefox_weibo_t001");
-            post.setHeader("Content-Type", "application/x-www-form-urlencoded");
-
-            String nonce = makeNonce(6);
+            Header[] postHeader = {
+                    new BasicHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
+                    new BasicHeader("User-Agent", "Mozilla/5.0 (Windows NT 5.1; rv:9.0.1) Gecko/20100101 Firefox/9.0.1"),
+                    new BasicHeader("Accept-Language", "zh-cn,zh;q=0.5"),
+                    new BasicHeader("Accept-Charset", "GB2312,utf-8;q=0.7,*;q=0.7"),
+                    new BasicHeader("Referer", "http://weibo.com/?c=spr_web_sq_firefox_weibo_t001"),
+                    new BasicHeader("Content-Type", "application/x-www-form-urlencoded")
+            };
 
             List<NameValuePair> nvps = new ArrayList<NameValuePair>();
             nvps.add(new BasicNameValuePair("encoding", "UTF-8"));
             nvps.add(new BasicNameValuePair("entry", "weibo"));
             nvps.add(new BasicNameValuePair("from", ""));
             nvps.add(new BasicNameValuePair("gateway", "1"));
-            nvps.add(new BasicNameValuePair("nonce", nonce));
+            nvps.add(new BasicNameValuePair("nonce", params.getNonce()));
             nvps.add(new BasicNameValuePair("pagerefer", "http://i.firefoxchina.cn/old/"));
             nvps.add(new BasicNameValuePair("prelt", "111"));
             nvps.add(new BasicNameValuePair("pwencode", "rsa2"));
             nvps.add(new BasicNameValuePair("returntype", "META"));
-            nvps.add(new BasicNameValuePair("rsakv", params.get("rsakv")));
+            nvps.add(new BasicNameValuePair("rsakv", params.getRsakv()));
             nvps.add(new BasicNameValuePair("savestate", "0"));
-            nvps.add(new BasicNameValuePair("servertime", params.get("servertime")));
-
+            nvps.add(new BasicNameValuePair("servertime", params.getServertime() + ""));
             nvps.add(new BasicNameValuePair("service", "miniblog"));
-            // nvps.add(new BasicNameValuePair("sp", new SinaSSOEncoder().encode(p, data, nonce)));
-
-            /******************** *加密密码 ***************************/
-            ScriptEngineManager sem = new ScriptEngineManager();
-            ScriptEngine se = sem.getEngineByName("javascript");
-            // FileReader f = new FileReader("d://sso.js");
-            se.eval(SinaSSOEncoder.getJs());
-            String pass = "";
-
-            if (se instanceof Invocable) {
-                Invocable invoke = (Invocable) se;
-                // 调用preprocess方法，并传入两个参数密码和验证码
-                pass = invoke.invokeFunction("getpass", p, params.get("servertime"), nonce, params.get("pubkey")).toString();
-                System.out.println("加密之后的密码是： " + pass);
-            }
-
-            nvps.add(new BasicNameValuePair("sp", pass));
+            nvps.add(new BasicNameValuePair("sp", getPassWord(p, params)));
             nvps.add(new BasicNameValuePair("su", encodeAccount(u)));
             nvps.add(new BasicNameValuePair("url","http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack"));
             nvps.add(new BasicNameValuePair("useticket", "1"));
-            // nvps.add(new BasicNameValuePair("ssosimplelogin", "1"));
             nvps.add(new BasicNameValuePair("vsnf", "1"));
-            post.setEntity(new UrlEncodedFormEntity(nvps, HTTP.UTF_8));
+            HttpPost post = HttpFactory.createHttpPost(Constaces.LOGIN_FIRST_URL,postHeader, nvps);
 
             HttpResponse response = client.execute(post);
             String entity = EntityUtils.toString(response.getEntity(), "GBK");
             System.out.println("\r\r执行加密登陆：\r" + entity);
-            
-            //try{sinaSSOController.setCrossDomainUrlList({"retcode":0,"arrURL":["http:\/\/crosdom.weicaifu.com\/sso\/crosdom?action=login"]});}catch(e){}
-            //try{sinaSSOController.crossDomainAction('login',function(){location.replace('http://passport.weibo.com/wbsso/login?url=http%3A%2F%2Fweibo.com%2Fajaxlogin.php%3Fframelogin%3D1%26callback%3Dparent.sinaSSOController.feedBackUrlCallBack%26sudaref%3Dweibo.com&ticket=ST-MTg3ODIzMDA3NQ==-1416290371-xd-DA438CD75651470DE3717B9B3E4B5EE9&retcode=0');});}catch(e){}
+
+            // try{sinaSSOController.setCrossDomainUrlList({"retcode":0,"arrURL":["http:\/\/crosdom.weicaifu.com\/sso\/crosdom?action=login"]});}catch(e){}
+            // try{sinaSSOController.crossDomainAction('login',function(){location.replace('http://passport.weibo.com/wbsso/login?url=http%3A%2F%2Fweibo.com%2Fajaxlogin.php%3Fframelogin%3D1%26callback%3Dparent.sinaSSOController.feedBackUrlCallBack%26sudaref%3Dweibo.com&ticket=ST-MTg3ODIzMDA3NQ==-1416290371-xd-DA438CD75651470DE3717B9B3E4B5EE9&retcode=0');});}catch(e){}
 
             String sp = "url=";
             if (true) {
                 String tmp = entity.split(sp)[1];
                 String url = tmp.split("retcode=0")[0] + "retcode=0";
-                
+
                 String strScr = ""; // 首页用户script形式数据
                 String nick = "暂无"; // 昵称
 
@@ -143,12 +115,11 @@ public class Sina {
                 System.out.println("\r\rRealUrl : " + url);
                 // 获取到实际url进行连接
                 HttpGet getMethod = new HttpGet(url);
-                
+
                 response = client.execute(getMethod);
                 entity = EntityUtils.toString(response.getEntity(), "GBK");
-                System.out.println( "LOGing: " + entity);
-                
-                
+                System.out.println("LOGing: " + entity);
+
                 nick = entity.substring(entity.indexOf("displayname") + 14,
                         entity.lastIndexOf("userdomain") - 3).trim();
 
@@ -202,7 +173,21 @@ public class Sina {
         return user;
     }
 
-
+    private static String getPassWord(String p, PreLonginBean params) throws ScriptException, NoSuchMethodException {
+        ScriptEngineManager sem = new ScriptEngineManager();
+        ScriptEngine se = sem.getEngineByName("javascript");
+        // FileReader f = new FileReader("d://sso.js");
+        se.eval(SinaSSOEncoder.getJs());
+        String pass = "";
+        if (se instanceof Invocable) {
+            Invocable invoke = (Invocable) se;
+            // 调用preprocess方法，并传入两个参数密码和验证码
+            pass = invoke.invokeFunction("getpass", p, params.getServertime() + "", 
+                    params.getNonce(),params.getPubkey()).toString();
+            System.out.println("加密之后的密码是： " + pass);
+        }
+        return pass;
+    }
 
     /**
      * 新浪微博预登录，获取密码加密公钥
@@ -210,9 +195,10 @@ public class Sina {
      * @return 返回从结果获取的参数的哈希表
      * @throws IOException
      */
-    private static HashMap<String, String> preLogin(String unameBase64, HttpClient client)throws IOException {
-        
-        String url = "http://login.sina.com.cn/sso/prelogin.php?entry=weibo&callback=sinaSSOController.preloginCallBack&su=&rsakt=mod&client=ssologin.js(v1.4.18)&_=" + new Date().getTime();
+    private static PreLonginBean preLogin(String unameBase64, HttpClient client) throws IOException {
+
+        String url = "http://login.sina.com.cn/sso/prelogin.php?entry=weibo&callback=sinaSSOController.preloginCallBack&su=&rsakt=mod&client=ssologin.js(v1.4.18)&_="
+                + new Date().getTime();
 
         HttpGet httpGet = HttpFactory.createHttpGet(url, null);
         HttpResponse httpResponse = client.execute(httpGet);
@@ -223,27 +209,35 @@ public class Sina {
             result = matcher.group();
         }
         System.out.println("Pre Result : " + result);
-//        Gson gson = new Gson();
-//        PreLonginBean preLonginBean = gson.fromJson(result, PreLonginBean.class);
-//
-//        HashMap<String, String> hm = (HashMap<String, String>) Utils.JsonHashMap(JSONArray.fromString(result));
-        HashMap<String, String> hm = new HashMap<String, String>();
-        result = result.substring(result.indexOf("{") + 1, result.indexOf("}"));
-        String[] r = result.split(",");
-        String[] temp;
-        for (int i = 0; i < r.length; i++) {
-            temp = r[i].split(":");
-            for (int j = 0; j < 2; j++) {
-                if (temp[j].contains("\""))
-                    temp[j] = temp[j].substring(1, temp[j].length() - 1);
-            }
-            hm.put(temp[0], temp[1]);
-        }
-        return hm;
-    
+        Gson gson = new Gson();
+        PreLonginBean preLonginBean = gson.fromJson(result, PreLonginBean.class);
+
+        // HashMap<String, String> hm = new HashMap<String, String>();
+        // result = result.substring(result.indexOf("{") + 1, result.indexOf("}"));
+        // String[] r = result.split(",");
+        // String[] temp;
+        // for (int i = 0; i < r.length; i++) {
+        // temp = r[i].split(":");
+        // for (int j = 0; j < 2; j++) {
+        // if (temp[j].contains("\""))
+        // temp[j] = temp[j].substring(1, temp[j].length() - 1);
+        // }
+        // hm.put(temp[0], temp[1]);
+        // System.out.println("Prase for string :  key:" + temp[0] + "  valuse: " + temp[1]);
+        // }
+        System.out.println("\r----------------------------------------------------");
+        System.out.println("exectime:        " + preLonginBean.getExectime());
+        System.out.println("nonce:        " + preLonginBean.getNonce());
+        System.out.println("pcid        " + preLonginBean.getPcid());
+        System.out.println("pubkey        " + preLonginBean.getPubkey());
+        System.out.println("retcode        " + preLonginBean.getRetcode());
+        System.out.println("rsakey        " + preLonginBean.getRsakv());
+        System.out.println("servertime        " + preLonginBean.getServertime());
+        System.out.println("----------------------------------------------------\r");
+        return preLonginBean;
+
     }
 
-    
     /**
      * 打印页面
      * @param entity
@@ -255,11 +249,11 @@ public class Sina {
     }
 
     public static boolean Share(String u, String p, String content, String pic, String surl) {
-        HttpClient client =mBroserContent.getHttpClient();
+        HttpClient client = mBroserContent.getHttpClient();
 
         try {
             HttpPost post = new HttpPost(
-                    "http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.18)");
+                    Constaces.LOGIN_FIRST_URL);
 
             String data = getServerTime();
 
@@ -352,10 +346,10 @@ public class Sina {
         HttpClient client = mBroserContent.getHttpClient();
 
         try {
-            HashMap<String, String> params = preLogin(encodeAccount(u), client);
+            PreLonginBean params = preLogin(encodeAccount(u), client);
 
             HttpPost post = new HttpPost(
-                    "http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.18)");
+                    Constaces.LOGIN_FIRST_URL);
             post
                     .setHeader("Accept",
                             "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
@@ -381,9 +375,9 @@ public class Sina {
             nvps.add(new BasicNameValuePair("prelt", "111"));
             nvps.add(new BasicNameValuePair("pwencode", "rsa2"));
             nvps.add(new BasicNameValuePair("returntype", "META"));
-            nvps.add(new BasicNameValuePair("rsakv", params.get("rsakv")));
+            nvps.add(new BasicNameValuePair("rsakv", params.getRsakv()));
             nvps.add(new BasicNameValuePair("savestate", "0"));
-            nvps.add(new BasicNameValuePair("servertime", params.get("servertime")));
+            nvps.add(new BasicNameValuePair("servertime", params.getServertime() + ""));
 
             nvps.add(new BasicNameValuePair("service", "miniblog"));
             // nvps.add(new BasicNameValuePair("sp", new SinaSSOEncoder().encode(p, data, nonce)));
@@ -400,7 +394,7 @@ public class Sina {
                 // 调用preprocess方法，并传入两个参数密码和验证码
 
                 pass = invoke.invokeFunction("getpass",
-                        p, params.get("servertime"), nonce, params.get("pubkey")).toString();
+                        p, params.getServertime() + "", nonce, params.getPubkey()).toString();
 
                 System.out.println("c = " + pass);
             }
