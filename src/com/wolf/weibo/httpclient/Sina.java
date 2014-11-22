@@ -60,56 +60,30 @@ public class Sina {
     private static BroserContent mBroserContent = BroserContent.getInstance();
 
     public static void main(String[] args) throws IOException {
-        WeiBoUser user = login("86118@163.com", "Andforce!@#");
+        WeiBoUser user = login("86898@163.com", "asd556566123");
         System.out.println(user.getUserName());
     }
 
     public static WeiBoUser login(String u, String p) {
 
         HttpClient client = mBroserContent.getHttpClient();
-        
-        Header[] getHeader = {
-        		new BasicHeader("Host", "i.sso.sina.com.cn"),
-                new BasicHeader("Accept", "*/*"),
-                new BasicHeader("If-Modified-Since", "Fri, 08 Aug 2014 05:57:32 GMT"),
-                new BasicHeader("User-Agent", Constaces.User_Agent),
-                new BasicHeader("Referer", "http://widget.weibo.com/dialog/PublishWeb.php?button=public&app_src=3G5oUM"),
-                new BasicHeader("Accept-Encoding", "gzip,deflate,sdch"),
-                new BasicHeader("Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4"),
-                };
-        
-        
-        HttpGet httpGet = HttpFactory.createHttpGet("http://i.sso.sina.com.cn/js/ssologin.js", getHeader);
-        try {
-			client.execute(httpGet);
-		} catch (ClientProtocolException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-
         WeiBoUser user = null;
         try {
             // 获得rsaPubkey,rsakv,servertime等参数值
             PreLonginBean params = preLogin(encodeAccount(u), client);
 
-            Header[] postHeader = {
-            		new BasicHeader("Host", "login.sina.com.cn"),
-            		new BasicHeader("Cache-Control", "max-age=0"),
-                    new BasicHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
-                    new BasicHeader("Origin", "http://widget.weibo.com"),
-                    new BasicHeader("User-Agent", Constaces.User_Agent),
-                    new BasicHeader("Content-Type", "application/x-www-form-urlencoded"),
-                    new BasicHeader("Referer", "http://widget.weibo.com/dialog/PublishWeb.php?button=public&app_src=3G5oUM"),
-                    new BasicHeader("Accept-Encoding", "gzip,deflate"),
-                    new BasicHeader("Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4"),
-//                    new BasicHeader("Accept-Charset", "GB2312,utf-8;q=0.7,*;q=0.7"),
-                    //new BasicHeader("Referer", "http://weibo.com/?c=spr_web_sq_firefox_weibo_t001"),
-                    
-            };
-
+            List<Header> headers = new ArrayList<Header>();
+            headers.add(new BasicHeader("Host", "login.sina.com.cn"));
+            headers.add(new BasicHeader("Cache-Control", "max-age=0"));
+            headers.add(new BasicHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"));
+            headers.add(new BasicHeader("Origin", "http://widget.weibo.com"));
+            headers.add(new BasicHeader("User-Agent", Constaces.User_Agent));
+            headers.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));
+            headers.add(new BasicHeader("Referer","http://widget.weibo.com/dialog/PublishWeb.php?button=public&app_src=6gBvZH"));
+            headers.add(new BasicHeader("Accept-Encoding", "gzip,deflate"));
+            headers.add(new BasicHeader("Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4"));
+            
+            
             List<NameValuePair> nvps = new ArrayList<NameValuePair>();
             nvps.add(new BasicNameValuePair("entry", "weibo"));
             nvps.add(new BasicNameValuePair("gateway", "1"));
@@ -130,7 +104,8 @@ public class Sina {
             nvps.add(new BasicNameValuePair("url","http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack"));
             nvps.add(new BasicNameValuePair("returntype", "META"));
 
-            HttpPost post = HttpFactory.createHttpPost(Constaces.LOGIN_FIRST_URL,postHeader, nvps);
+            HttpPost post = HttpFactory.createHttpPost(Constaces.LOGIN_FIRST_URL,headers, nvps);
+            
             HttpResponse response = client.execute(post);
             String entity = ResponseUtils.getResponseLines(true, response, "GBK");//EntityUtils.toString(response.getEntity(), "GBK");
             System.out.println("\r\r执行加密登陆：\r" + entity);
@@ -169,7 +144,7 @@ public class Sina {
                 response = client.execute(getMethod);
                 entity = EntityUtils.toString(response.getEntity());
                 //System.out.println(entity);
-                System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++");
+                
 
                 //mBroserContent, "http://widget.weibo.com/public/aj_addMblog.php", app_src, textContent, mCookie, pid
                 List<Cookie> cookies = mBroserContent.getCookieStore().getCookies();
@@ -177,7 +152,9 @@ public class Sina {
                 for (Cookie cookie : cookies) {
                     cookieString = cookieString + cookie.getName() + "=" + cookie.getValue() + "; ";
                 }
-                sendWeibo(mBroserContent, "http://widget.weibo.com/public/aj_addMblog.php", "3G5oUM", "123456789", cookieString, null);
+                System.out.println(cookieString);
+                System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++");
+                sendWeibo(mBroserContent, "http://widget.weibo.com/public/aj_addMblog.php", "6gBvZH", "11", cookieString, null);
                 
                 
                 Document doc = Jsoup.parse(entity);
@@ -228,22 +205,22 @@ public class Sina {
     
     public static boolean sendWeibo(BroserContent broserContent, String url, String app_src, String content, String cookie, String pid) {
         CloseableHttpClient httpClient = broserContent.getHttpClient();
-        // http://widget.weibo.com/dialog/PublishWeb.php?button=public&app_src=3G5oUM
+        // http://widget.weibo.com/dialog/PublishWeb.php?button=public&app_src=6gBvZH
         // http://widget.weibo.com/public/aj_addMblog.php
-        Header[] loginHeaders = {
-                new BasicHeader("Accept", "*/*"),
-                new BasicHeader("Accept-Encoding", "gzip, deflate"),
-                new BasicHeader("Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4"),
-                // new BasicHeader("Cache-Control", "max-age=0"),
-                new BasicHeader("Connection", "keep-alive"),
-                new BasicHeader("Content-Type", "application/x-www-form-urlencoded"),
-                new BasicHeader("Host", "widget.weibo.com"),
-                new BasicHeader("Origin", "http://widget.weibo.com"),
-                new BasicHeader("X-Requested-With", "XMLHttpRequest"),
-                new BasicHeader("Cookie", cookie),
-                new BasicHeader("Referer", "http://widget.weibo.com/topics/topic_vote_base.php?" + "tag=Weibo&app_src=" + app_src
-                        + "&isshowright=0&language=zh_cn"),
-                new BasicHeader("User-Agent", Constaces.User_Agent), };
+
+        List<Header> headers = new ArrayList<Header>();
+        headers.add(new BasicHeader("Accept", "*/*"));
+        headers.add(new BasicHeader("Accept-Encoding", "gzip, deflate"));
+        headers.add(new BasicHeader("Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4"));
+        headers.add(new BasicHeader("Connection", "keep-alive"));
+        headers.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));
+        headers.add(new BasicHeader("Host", "widget.weibo.com"));
+        headers.add(new BasicHeader("Origin", "http://widget.weibo.com"));
+        headers.add(new BasicHeader("X-Requested-With", "XMLHttpRequest"));
+        headers.add(new BasicHeader("Referer", "http://widget.weibo.com/topics/topic_vote_base.php?" + "tag=Weibo&app_src="
+                + app_src
+                + "&isshowright=0&language=zh_cn"));
+        headers.add(new BasicHeader("User-Agent", Constaces.User_Agent));
 
         List<NameValuePair> loginParams = new ArrayList<NameValuePair>();
         loginParams.add(new BasicNameValuePair("app_src", app_src));
@@ -260,7 +237,7 @@ public class Sina {
         loginParams.add(new BasicNameValuePair("_t", "0"));
         // loginParams.add(new BasicNameValuePair("Cookie", cookie));
 
-        HttpPost logInPost = HttpFactory.createHttpPost(url, loginHeaders, loginParams);
+        HttpPost logInPost = HttpFactory.createHttpPost(url, headers, loginParams);
 
         // logInPost.addHeader("Cookie", cookie);
         CloseableHttpResponse logInResponse = null;
@@ -387,7 +364,7 @@ public class Sina {
         		new BasicHeader("Host", "login.sina.com.cn"),
                 new BasicHeader("Accept", "*/*"),
                 new BasicHeader("User-Agent", Constaces.User_Agent),
-                new BasicHeader("Referer", "http://widget.weibo.com/dialog/PublishWeb.php?button=public&app_src=3G5oUM"),
+                new BasicHeader("Referer", "http://widget.weibo.com/dialog/PublishWeb.php?button=public&app_src=6gBvZH"),
                 new BasicHeader("Accept-Encoding", "gzip,deflate,sdch"),
                 new BasicHeader("Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4"),
         };

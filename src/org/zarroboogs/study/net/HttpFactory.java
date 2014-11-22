@@ -11,7 +11,6 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.cookie.CookieSpec;
 
 public class HttpFactory {
 
@@ -25,12 +24,12 @@ public class HttpFactory {
         return httpGet;
     }
 
-    public static HttpPost createHttpPost(String mPostURL, Header[] headers, List<NameValuePair> mFornData) {
+    public static HttpPost createHttpPost(String mPostURL, List<Header> requestHeaders, List<NameValuePair> mFornData) {
         HttpPost mHttpPost = new HttpPost(mPostURL);
 
         RequestConfig postConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.BROWSER_COMPATIBILITY).setConnectTimeout(5000).setSocketTimeout(5000).setConnectionRequestTimeout(5000).build();
         mHttpPost.setConfig(postConfig);
-        
+        Header[] headers = requestHeaders.toArray(new Header[requestHeaders.size()]);
         mHttpPost.setHeaders(headers);
 
         UrlEncodedFormEntity mEncodedFormEntity = null;
