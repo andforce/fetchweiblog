@@ -141,7 +141,7 @@ public class Sina {
             }
             System.out.println(cookieString);
             System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++");
-            sendWeibo(mBroserContent, "http://widget.weibo.com/public/aj_addMblog.php", "6gBvZH", "11", cookieString, null);
+            sendWeibo(mBroserContent, "http://widget.weibo.com/public/aj_addMblog.php", "6gBvZH", "11" + new Date().getTime(), cookieString, null);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (NoSuchMethodException e) {
@@ -272,19 +272,22 @@ public class Sina {
     }
 
     private static String getPassWord(String p, PreLonginBean params) throws ScriptException, NoSuchMethodException {
-        ScriptEngineManager sem = new ScriptEngineManager();
-        ScriptEngine se = sem.getEngineByName("javascript");
-        // FileReader f = new FileReader("d://sso.js");
-        se.eval(SinaSSOEncoder.getJs());
-        String pass = "";
-        if (se instanceof Invocable) {
-            Invocable invoke = (Invocable) se;
-            // 调用preprocess方法，并传入两个参数密码和验证码
-            pass = invoke.invokeFunction("getpass", p, params.getServertime() + "",
-                    params.getNonce(), params.getPubkey()).toString();
-            System.out.println("加密之后的密码是： " + pass);
-        }
-        return pass;
+        PwdEncodeJSRunner pwdEncodeJSRunner = new PwdEncodeJSRunner();
+        String test = pwdEncodeJSRunner.getPwd(p, params);
+        System.out.println("FromJS======== [" + test);
+//        ScriptEngineManager sem = new ScriptEngineManager();
+//        ScriptEngine se = sem.getEngineByName("javascript");
+//        // FileReader f = new FileReader("d://sso.js");
+//        se.eval(SinaSSOEncoder.getJs());
+//        String pass = "";
+//        if (se instanceof Invocable) {
+//            Invocable invoke = (Invocable) se;
+//            // 调用preprocess方法，并传入两个参数密码和验证码
+//            pass = invoke.invokeFunction("getpass", p, params.getServertime() + "",
+//                    params.getNonce(), params.getPubkey()).toString();
+//            System.out.println("加密之后的密码是： " + pass);
+//        }
+        return test;
     }
 
     private static String buildPreLoginUrl(String su, String ssoLoginjs, String time) {

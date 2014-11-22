@@ -21,6 +21,7 @@ function SSOController() {
 	var pincodeUrl = 'http://login.sina.com.cn/cgi/pin.php';
 	var vfValidUrl = 'http://weibo.com/sguide/vdun.php';
 
+
 	var crossDomainUrlList = null;
 	
 	var loginMethod = ""; // post or get ,方便登录后的处理
@@ -1921,6 +1922,6 @@ sinaSSOController.init();
 function getpass(pwd, servicetime, nonce, pubkey) {
     var RSAKey = new sinaSSOEncoder.RSAKey();
     RSAKey.setPublic(pubkey, '10001');
-    var password = RSAKey.encrypt([servicetime, nonce].join("\t") + "\n" + password);
+    var password = RSAKey.encrypt([servicetime, nonce].join("\t") + "\n" + pwd);
     return password;
 }

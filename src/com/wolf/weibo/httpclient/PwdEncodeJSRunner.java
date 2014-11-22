@@ -4,34 +4,39 @@ package com.wolf.weibo.httpclient;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.HashMap;
 
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
+import com.wolf.weibo.httpclient.javabean.PreLonginBean;
+
 public class PwdEncodeJSRunner {
-    ScriptEngineManager manager = new ScriptEngineManager();
-    ScriptEngine engine = manager.getEngineByName("JavaScript");
+
     Invocable inv = null;
 
     public PwdEncodeJSRunner() {
-        File jsFile = new File("./sso.js");
+        ScriptEngineManager manager = new ScriptEngineManager();
+        ScriptEngine engine = manager.getEngineByName("JavaScript");
+        
+        File jsFile = new File("./js/sso.js");
         System.out.println("js 是否存在：    " + jsFile.exists());
         try {
             engine.eval(new FileReader(jsFile));
         } catch (FileNotFoundException e) {
         } catch (ScriptException e) {
         }
-        inv = (Invocable) engine;
+        if (engine instanceof Invocable) {
+            inv = (Invocable) engine;
+        }
     }
 
-    public String getPwd(String p, HashMap<String, String> params, String nonce) {
+    public String getPwd(String p, PreLonginBean params) {
         System.out.println("inv == null? " + (inv == null));
         String pass = null;
         try {
-            pass = inv.invokeFunction("getpass", p, params.get("servertime"), nonce, params.get("pubkey")).toString();
+            pass = inv.invokeFunction("getpass", p, params.getServertime(), params.getNonce(), params.getPubkey()).toString();
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
         } catch (ScriptException e) {

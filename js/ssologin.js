@@ -1,13 +1,17 @@
+/**
+ * ssologin.js
+ */
 function SSOController() {
-    var undefined;
-    var me = this;
-    var updateCookieTimer = null;
-    var updateCookieTimeHardLimit = 1800;
-    var cookieExpireTimeLength = 3600 * 24;
-    var crossDomainForward = null;
-    var crossDomainTimer = null;
-    var crossDomainTime = 3;
-    var autoLoginCallBack2 = null;
+	var me = this; // use in private function 
+	var updateCookieTimer = null;
+	var updateCookieTimeHardLimit = 1800; // 在该时间内不允许更新cookie，默认30分钟
+	var cookieExpireTimeLength = 3600 * 24;  // cookie过期时间为24小时
+
+	var crossDomainForward = null ;  // 广播操作完成后执行的动作
+	var crossDomainTimer = null;
+	var crossDomainTime = 3; // 允许广播操作的最大时间
+	var autoLoginCallBack2 = null;
+
     var ssoCrosssDomainUrl = "http://login.sina.com.cn/sso/crossdomain.php";
     var ssoLoginUrl = "http://login.sina.com.cn/sso/login.php";
     var ssoLogoutUrl = "http://login.sina.com.cn/sso/logout.php";
@@ -16,6 +20,9 @@ function SSOController() {
     var pincodeUrl = "http://login.sina.com.cn/cgi/pin.php";
     var vfValidUrl = "http://weibo.com/sguide/vdun.php";
     var generateVisitorUrl = "http://passport.weibo.com/visitor/visitor";
+
+    var undefined;
+
     var crossDomainUrlList = null;
     var loginMethod = "";
     var ssoServerTimeTimer = null;
@@ -45,6 +52,12 @@ function SSOController() {
         "weibo.com": "miniblog"
     };
     this.loginExtraQuery = {};
+
+
+
+
+
+
     this.setDomain = false;
     this.feedBackUrl = "";
     this.service = "sso";
@@ -77,6 +90,7 @@ function SSOController() {
     this.generateVisitorProbability = 1;
     this.generateVisitorDelay = 6;
     this.generateVisitorDomain = ["^.*sina.com.cn$"];
+
     this.getVersion = function() {
         return "ssologin.js(v1.4.18) 2014-06-12"
     };
@@ -2395,7 +2409,16 @@ var sinaSSOEncoder = sinaSSOEncoder || {}; (function() {
 }).call(sinaSSOEncoder);
 sinaSSOController = new SSOController();
 sinaSSOController.init();
+
+//function getpass(pwd,servicetime,nonce){
+//		var RSAKey = new sinaSSOEncoder.RSAKey();
+//	RSAKey.setPublic(me.rsaPubkey, '10001');
+//		password = RSAKey.encrypt([servicetime, nonce].join("\t") + "\n" + password);
+//	}
+
 function getpass(pwd, servicetime, nonce, pubkey) {
+    var RSAKey = new sinaSSOEncoder.RSAKey();
     RSAKey.setPublic(pubkey, '10001');
-    password = RSAKey.encrypt([servicetime, nonce].join("\t") + "\n" + password);
+    var password = RSAKey.encrypt([servicetime, nonce].join("\t") + "\n" + pwd);
+    return password;
 }
