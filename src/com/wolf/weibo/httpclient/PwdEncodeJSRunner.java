@@ -20,7 +20,7 @@ public class PwdEncodeJSRunner {
         ScriptEngineManager manager = new ScriptEngineManager();
         ScriptEngine engine = manager.getEngineByName("JavaScript");
         
-        File jsFile = new File("./js/sso.js");
+        File jsFile = new File("./js/ssologin.js");
         System.out.println("js 是否存在：    " + jsFile.exists());
         try {
             engine.eval(new FileReader(jsFile));
@@ -32,11 +32,11 @@ public class PwdEncodeJSRunner {
         }
     }
 
-    public String getPwd(String p, PreLonginBean params) {
+    public String getRsaPassWord(String p, PreLonginBean params) {
         System.out.println("inv == null? " + (inv == null));
         String pass = null;
         try {
-            pass = inv.invokeFunction("getpass", p, params.getServertime(), params.getNonce(), params.getPubkey()).toString();
+            pass = inv.invokeFunction("getRsaPassWord", p, params.getServertime(), params.getNonce(), params.getPubkey()).toString();
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
         } catch (ScriptException e) {

@@ -1,5 +1,5 @@
 
-package com.wolf.weibo.httpclient.javabean;
+package com.wolf.weibo.httpclient.utils;
 
 public class Constaces {
     // 第一次Get请求返回的数据

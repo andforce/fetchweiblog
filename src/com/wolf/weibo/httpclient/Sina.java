@@ -14,9 +14,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.script.Invocable;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
 import org.apache.commons.codec.binary.Base64;
@@ -39,25 +36,25 @@ import org.zarroboogs.study.net.BroserContent;
 import org.zarroboogs.study.net.HttpFactory;
 
 import com.google.gson.Gson;
-import com.wolf.weibo.httpclient.javabean.Constaces;
 import com.wolf.weibo.httpclient.javabean.HasloginBean;
 import com.wolf.weibo.httpclient.javabean.PreLonginBean;
+import com.wolf.weibo.httpclient.utils.Constaces;
 
 public class Sina {
 
     private static BroserContent mBroserContent = BroserContent.getInstance();
 
     public static void main(String[] args) throws IOException {
-        login("86898@163.com", "asd556566123");
+        login("name", "pwd");
     }
 
-    public static void login(String u, String p) {
+    public static void login(String userName, String passWord) {
 
         HttpClient client = mBroserContent.getHttpClient();
         // 获得rsaPubkey,rsakv,servertime等参数值
         PreLonginBean params;
         try {
-            params = preLogin(encodeAccount(u), client);
+            params = preLogin(encodeAccount(userName), client);
             List<Header> headers = new ArrayList<Header>();
             headers.add(new BasicHeader("Host", "login.sina.com.cn"));
             headers.add(new BasicHeader("Cache-Control", "max-age=0"));
@@ -78,13 +75,13 @@ public class Sina {
             nvps.add(new BasicNameValuePair("useticket", "1"));
             nvps.add(new BasicNameValuePair("pagerefer", ""));
             nvps.add(new BasicNameValuePair("vsnf", "1"));
-            nvps.add(new BasicNameValuePair("su", encodeAccount(u)));
+            nvps.add(new BasicNameValuePair("su", encodeAccount(userName)));
             nvps.add(new BasicNameValuePair("service", "miniblog"));
             nvps.add(new BasicNameValuePair("servertime", params.getServertime() + ""));
             nvps.add(new BasicNameValuePair("nonce", params.getNonce()));
             nvps.add(new BasicNameValuePair("pwencode", "rsa2"));
             nvps.add(new BasicNameValuePair("rsakv", params.getRsakv()));
-            nvps.add(new BasicNameValuePair("sp", getPassWord(p, params)));
+            nvps.add(new BasicNameValuePair("sp", getRsaPassWord(passWord, params)));
             nvps.add(new BasicNameValuePair("encoding", "UTF-8"));
             nvps.add(new BasicNameValuePair("prelt", "166"));
             nvps.add(new BasicNameValuePair("url",
@@ -271,22 +268,10 @@ public class Sina {
 
     }
 
-    private static String getPassWord(String p, PreLonginBean params) throws ScriptException, NoSuchMethodException {
+    private static String getRsaPassWord(String p, PreLonginBean params) throws ScriptException, NoSuchMethodException {
         PwdEncodeJSRunner pwdEncodeJSRunner = new PwdEncodeJSRunner();
-        String test = pwdEncodeJSRunner.getPwd(p, params);
+        String test = pwdEncodeJSRunner.getRsaPassWord(p, params);
         System.out.println("FromJS======== [" + test);
-//        ScriptEngineManager sem = new ScriptEngineManager();
-//        ScriptEngine se = sem.getEngineByName("javascript");
-//        // FileReader f = new FileReader("d://sso.js");
-//        se.eval(SinaSSOEncoder.getJs());
-//        String pass = "";
-//        if (se instanceof Invocable) {
-//            Invocable invoke = (Invocable) se;
-//            // 调用preprocess方法，并传入两个参数密码和验证码
-//            pass = invoke.invokeFunction("getpass", p, params.getServertime() + "",
-//                    params.getNonce(), params.getPubkey()).toString();
-//            System.out.println("加密之后的密码是： " + pass);
-//        }
         return test;
     }
 
