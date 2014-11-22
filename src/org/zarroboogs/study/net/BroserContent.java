@@ -4,6 +4,10 @@ package org.zarroboogs.study.net;
 import org.apache.http.HttpHost;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.params.CookiePolicy;
+import org.apache.http.client.params.HttpClientParams;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -15,8 +19,7 @@ public class BroserContent {
 
     private CookieStore mCookieStore = new BasicCookieStore();
 
-    private CloseableHttpClient mHttpClient = (CloseableHttpClient) HttpClientFactory
-            .creteHttpClient(mCookieStore);
+    private CloseableHttpClient mHttpClient = (CloseableHttpClient) creteHttpClient(mCookieStore);
 
     private static BroserContent mBroserContent = null;
 
@@ -36,34 +39,38 @@ public class BroserContent {
     }
 
     // HttpClient
-    public static class HttpClientFactory {
-        private static HttpClient customerHttpClient;
 
-        /**
-         * @param mProxyHost
-         * @return
-         */
-        public static synchronized HttpClient creteHttpClient(CookieStore mCookieStore, HttpHost... mProxyHost) {
+    private static HttpClient customerHttpClient;
 
-            if (null == customerHttpClient) {
-                HttpClientBuilder customBuilder = HttpClients.custom();
+    /**
+     * @param mProxyHost
+     * @return
+     */
+    public static synchronized HttpClient creteHttpClient(CookieStore mCookieStore, HttpHost... mProxyHost) {
 
-                PoolingHttpClientConnectionManager manager = new PoolingHttpClientConnectionManager();
-                manager.setMaxTotal(10);
-                manager.setDefaultMaxPerRoute(10);
-                customBuilder.setConnectionManager(manager);
+        if (null == customerHttpClient) {
+            HttpClientBuilder customBuilder = HttpClients.custom();
 
-                LaxRedirectStrategy redirectStrategy = new LaxRedirectStrategy();
-                customBuilder.setRedirectStrategy(redirectStrategy);
-                customBuilder.setDefaultCookieStore(mCookieStore);
+            PoolingHttpClientConnectionManager manager = new PoolingHttpClientConnectionManager();
+            manager.setMaxTotal(10);
+            manager.setDefaultMaxPerRoute(10);
+            customBuilder.setConnectionManager(manager);
 
-                for (HttpHost mHost : mProxyHost) {
-                    customBuilder.setProxy(mHost);
-                }
-                customerHttpClient = customBuilder.build();
+            LaxRedirectStrategy redirectStrategy = new LaxRedirectStrategy();
+            customBuilder.setRedirectStrategy(redirectStrategy);
+            customBuilder.setDefaultCookieStore(mCookieStore);
 
+            RequestConfig requestConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.BEST_MATCH).build();
+            customBuilder.setDefaultRequestConfig(requestConfig);
+            
+            for (HttpHost mHost : mProxyHost) {
+                customBuilder.setProxy(mHost);
             }
-            return customerHttpClient;
+            customerHttpClient = customBuilder.build();
+//            HttpClientParams.setCookiePolicy(customerHttpClient.getParams(), CookiePolicy.BROWSER_COMPATIBILITY);
+
         }
+        return customerHttpClient;
     }
+
 }

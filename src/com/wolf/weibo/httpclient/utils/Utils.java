@@ -14,9 +14,9 @@ import net.sf.json.JSONObject;
 
 public class Utils {
     public static HashMap<?, ?> JsonHashMap(JSONArray joArr) {
-        List<Map<Object, Object>> list = new ArrayList<>();
+        List<Map<Object, Object>> list = new ArrayList<Map<Object, Object>>();
         JsonArray2HashMap(joArr, list);
-        HashMap<Object, Object> result = new HashMap<>();
+        HashMap<Object, Object> result = new HashMap<Object, Object>();
         for (Map<Object, Object> map : list) {
             Set<?> keys = map.keySet();
             for (Object key : keys) {
