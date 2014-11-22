@@ -62,12 +62,13 @@ public class BroserContent {
 
             RequestConfig requestConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.BEST_MATCH).build();
             customBuilder.setDefaultRequestConfig(requestConfig);
-            
+
             for (HttpHost mHost : mProxyHost) {
                 customBuilder.setProxy(mHost);
             }
             customerHttpClient = customBuilder.build();
-//            HttpClientParams.setCookiePolicy(customerHttpClient.getParams(), CookiePolicy.BROWSER_COMPATIBILITY);
+            // HttpClientParams.setCookiePolicy(customerHttpClient.getParams(),
+            // CookiePolicy.BROWSER_COMPATIBILITY);
 
         }
         return customerHttpClient;

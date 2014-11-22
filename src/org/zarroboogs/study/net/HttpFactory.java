@@ -16,7 +16,8 @@ public class HttpFactory {
 
     public static HttpGet createHttpGet(String requestUrl, Header[] headers) {
         HttpGet httpGet = new HttpGet(requestUrl);
-        RequestConfig getConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.BROWSER_COMPATIBILITY).setConnectTimeout(5000).setSocketTimeout(5000).setConnectionRequestTimeout(5000).build();
+        RequestConfig getConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.BROWSER_COMPATIBILITY)
+                .setConnectTimeout(5000).setSocketTimeout(5000).setConnectionRequestTimeout(5000).build();
         httpGet.setConfig(getConfig);
         if (headers != null) {
             httpGet.setHeaders(headers);
@@ -27,7 +28,8 @@ public class HttpFactory {
     public static HttpPost createHttpPost(String mPostURL, List<Header> requestHeaders, List<NameValuePair> mFornData) {
         HttpPost mHttpPost = new HttpPost(mPostURL);
 
-        RequestConfig postConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.BROWSER_COMPATIBILITY).setConnectTimeout(5000).setSocketTimeout(5000).setConnectionRequestTimeout(5000).build();
+        RequestConfig postConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.BROWSER_COMPATIBILITY)
+                .setConnectTimeout(5000).setSocketTimeout(5000).setConnectionRequestTimeout(5000).build();
         mHttpPost.setConfig(postConfig);
         Header[] headers = requestHeaders.toArray(new Header[requestHeaders.size()]);
         mHttpPost.setHeaders(headers);
