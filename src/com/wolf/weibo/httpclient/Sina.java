@@ -45,7 +45,7 @@ public class Sina {
     private static BroserContent mBroserContent = BroserContent.getInstance();
 
     public static void main(String[] args) throws IOException {
-        login("86898@163.com", "asd5565661234");
+        login("name", "pwd");
     }
 
     public static void login(String userName, String passWord) {
@@ -246,6 +246,7 @@ public class Sina {
     private static String getRsaPassWord(String p, PreLonginBean params) throws ScriptException, NoSuchMethodException {
         PwdEncodeJSRunner pwdEncodeJSRunner = new PwdEncodeJSRunner();
         String test = pwdEncodeJSRunner.getRsaPassWord(p, params);
+        System.out.println("PassWod: " + p);
         System.out.println("FromJS======== [" + test);
         return test;
     }
@@ -317,6 +318,9 @@ public class Sina {
     private static String encodeAccount(String account) {
         String userName = "";
         try {
+            String encodedString = new String(Base64.encodeBase64(URLEncoder.encode(account, "UTF-8").getBytes()));
+            String test = encodedString.replace('+','-').replace('/','_');
+            System.out.println("SU==================test: " + test);
             userName = Base64.encodeBase64String(URLEncoder.encode(account, "UTF-8").getBytes());
             // userName = BASE64Encoder.encode(URLEncoder.encode(account,"UTF-8").getBytes());
         } catch (UnsupportedEncodingException e) {

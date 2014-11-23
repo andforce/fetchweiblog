@@ -36,6 +36,7 @@ public class PwdEncodeJSRunner {
         System.out.println("inv == null? " + (inv == null));
         String pass = null;
         try {
+        	System.out.println(p + "   " + params.getServertime() +"   "+ params.getNonce() + "   " + params.getPubkey());
             pass = inv.invokeFunction("getRsaPassWord", p, params.getServertime(), params.getNonce(), params.getPubkey()).toString();
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
