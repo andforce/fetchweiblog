@@ -26,7 +26,6 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
@@ -37,6 +36,7 @@ import org.zarroboogs.study.net.HttpFactory;
 
 import com.google.gson.Gson;
 import com.wolf.weibo.httpclient.javabean.HasloginBean;
+import com.wolf.weibo.httpclient.javabean.LoginResultHelper;
 import com.wolf.weibo.httpclient.javabean.PreLonginBean;
 import com.wolf.weibo.httpclient.utils.Constaces;
 
@@ -45,7 +45,7 @@ public class Sina {
     private static BroserContent mBroserContent = BroserContent.getInstance();
 
     public static void main(String[] args) throws IOException {
-        login("name", "pwd");
+        login("86898@163.com", "asd5565661234");
     }
 
     public static void login(String userName, String passWord) {
@@ -55,90 +55,26 @@ public class Sina {
         PreLonginBean params;
         try {
             params = preLogin(encodeAccount(userName), client);
-            List<Header> headers = new ArrayList<Header>();
-            headers.add(new BasicHeader("Host", "login.sina.com.cn"));
-            headers.add(new BasicHeader("Cache-Control", "max-age=0"));
-            headers.add(new BasicHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"));
-            headers.add(new BasicHeader("Origin", "http://widget.weibo.com"));
-            headers.add(new BasicHeader("User-Agent", Constaces.User_Agent));
-            headers.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));
-            headers.add(new BasicHeader("Referer",
-                    "http://widget.weibo.com/dialog/PublishWeb.php?button=public&app_src=6gBvZH"));
-            headers.add(new BasicHeader("Accept-Encoding", "gzip,deflate"));
-            headers.add(new BasicHeader("Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4"));
-
-            List<NameValuePair> nvps = new ArrayList<NameValuePair>();
-            nvps.add(new BasicNameValuePair("entry", "weibo"));
-            nvps.add(new BasicNameValuePair("gateway", "1"));
-            nvps.add(new BasicNameValuePair("from", ""));
-            nvps.add(new BasicNameValuePair("savestate", "7"));
-            nvps.add(new BasicNameValuePair("useticket", "1"));
-            nvps.add(new BasicNameValuePair("pagerefer", ""));
-            nvps.add(new BasicNameValuePair("vsnf", "1"));
-            nvps.add(new BasicNameValuePair("su", encodeAccount(userName)));
-            nvps.add(new BasicNameValuePair("service", "miniblog"));
-            nvps.add(new BasicNameValuePair("servertime", params.getServertime() + ""));
-            nvps.add(new BasicNameValuePair("nonce", params.getNonce()));
-            nvps.add(new BasicNameValuePair("pwencode", "rsa2"));
-            nvps.add(new BasicNameValuePair("rsakv", params.getRsakv()));
-            nvps.add(new BasicNameValuePair("sp", getRsaPassWord(passWord, params)));
-            nvps.add(new BasicNameValuePair("encoding", "UTF-8"));
-            nvps.add(new BasicNameValuePair("prelt", "166"));
-            nvps.add(new BasicNameValuePair("url",
-                    "http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack"));
-            nvps.add(new BasicNameValuePair("returntype", "META"));
-
-            HttpPost post = HttpFactory.createHttpPost(Constaces.LOGIN_FIRST_URL, headers, nvps);
-
+            HttpPost post = doLogin(userName, passWord, params);
             HttpResponse response = client.execute(post);
+            LoginResultHelper helper = new LoginResultHelper(response.getEntity());
+            System.out.println("登陆是否成功了：  " + helper.isLogin());
+            if (helper.isLogin()) {
+                HttpGet userPageGet = HttpFactory.createHttpGet(helper.getUserPageUrl(), null);
+                HttpResponse userPageResponse = client.execute(userPageGet);
+                String responseString = EntityUtils.toString(userPageResponse.getEntity(), "GBK");
 
-            String entity = EntityUtils.toString(response.getEntity(), "GBK");
-            System.out.println("\r\r执行加密登陆：\r" + entity);
+                Gson gson = new Gson();
+                String loginResponse = getJsonString(responseString) + "}";
+                System.out.println("json: " + loginResponse);
 
-            // try{sinaSSOController.setCrossDomainUrlList({"retcode":0,"arrURL":["http:\/\/crosdom.weicaifu.com\/sso\/crosdom?action=login"]});}catch(e){}
-            // try{sinaSSOController.crossDomainAction('login',function(){location.replace('http://passport.weibo.com/wbsso/login?url=http%3A%2F%2Fweibo.com%2Fajaxlogin.php%3Fframelogin%3D1%26callback%3Dparent.sinaSSOController.feedBackUrlCallBack%26sudaref%3Dweibo.com&ticket=ST-MTg3ODIzMDA3NQ==-1416290371-xd-DA438CD75651470DE3717B9B3E4B5EE9&retcode=0');});}catch(e){}
-            // http://crosdom.weicaifu.com/sso/crosdom?action=login
-            String splitby = "url=";
-
-            String tmp = entity.split(splitby)[1];
-            String url = tmp.split("retcode=0")[0] + "retcode=0";
-
-            String strScr = ""; // 首页用户script形式数据
-            String nick = "暂无"; // 昵称
-
-            url = URLDecoder.decode(URLDecoder.decode(url));
-            System.out.println("\r\rRealUrl : " + url);
-            // 获取到实际url进行连接
-            HttpGet getMethod = new HttpGet(url);
-
-            response = client.execute(getMethod);
-            entity = EntityUtils.toString(response.getEntity(), "GBK");
-            System.out.println("HAS_LOGIN: " + entity);
-
-            Gson gson = new Gson();
-            String loginResponse = getJsonString(entity) + "}";
-            System.out.println("json: " + loginResponse);
-
-            HasloginBean hasloginBean = gson.fromJson(loginResponse, HasloginBean.class);
-
-            nick = hasloginBean.getUserinfo().getDisplayname();
-            url = hasloginBean.getUserinfo().getUserdomain();
-
-            getMethod = new HttpGet("http://weibo.com/" + url);
-            response = client.execute(getMethod);
-            entity = EntityUtils.toString(response.getEntity());
-            // System.out.println(entity);
-
-            // mBroserContent, "http://widget.weibo.com/public/aj_addMblog.php", app_src,
-            // textContent, mCookie, pid
-            List<Cookie> cookies = mBroserContent.getCookieStore().getCookies();
-            String cookieString = "";
-            for (Cookie cookie : cookies) {
-                cookieString = cookieString + cookie.getName() + "=" + cookie.getValue() + "; ";
-            }
-            System.out.println(cookieString);
-            System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++");
-            sendWeibo(mBroserContent, "http://widget.weibo.com/public/aj_addMblog.php", "6gBvZH", "11" + new Date().getTime(), cookieString, null);
+                HasloginBean hasloginBean = gson.fromJson(loginResponse, HasloginBean.class);
+                
+                sendWeibo(mBroserContent, "http://widget.weibo.com/public/aj_addMblog.php", "6gBvZH", "11" + new Date().getTime(), null, null);
+			} else {
+				System.out.println(helper.getResponseString());
+				System.out.println(helper.getErrorReason());
+			}
         } catch (IOException e) {
             e.printStackTrace();
         } catch (NoSuchMethodException e) {
@@ -148,6 +84,45 @@ public class Sina {
         }
 
     }
+
+	private static HttpPost doLogin(String userName, String passWord,
+			PreLonginBean params) throws ScriptException, NoSuchMethodException {
+		List<Header> headers = new ArrayList<Header>();
+		headers.add(new BasicHeader("Host", "login.sina.com.cn"));
+		headers.add(new BasicHeader("Cache-Control", "max-age=0"));
+		headers.add(new BasicHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"));
+		headers.add(new BasicHeader("Origin", "http://widget.weibo.com"));
+		headers.add(new BasicHeader("User-Agent", Constaces.User_Agent));
+		headers.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));
+		headers.add(new BasicHeader("Referer",
+		        "http://widget.weibo.com/dialog/PublishWeb.php?button=public&app_src=6gBvZH"));
+		headers.add(new BasicHeader("Accept-Encoding", "gzip,deflate"));
+		headers.add(new BasicHeader("Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.6,en;q=0.4"));
+
+		List<NameValuePair> nvps = new ArrayList<NameValuePair>();
+		nvps.add(new BasicNameValuePair("entry", "weibo"));
+		nvps.add(new BasicNameValuePair("gateway", "1"));
+		nvps.add(new BasicNameValuePair("from", ""));
+		nvps.add(new BasicNameValuePair("savestate", "7"));
+		nvps.add(new BasicNameValuePair("useticket", "1"));
+		nvps.add(new BasicNameValuePair("pagerefer", ""));
+		nvps.add(new BasicNameValuePair("vsnf", "1"));
+		nvps.add(new BasicNameValuePair("su", encodeAccount(userName)));
+		nvps.add(new BasicNameValuePair("service", "miniblog"));
+		nvps.add(new BasicNameValuePair("servertime", params.getServertime() + ""));
+		nvps.add(new BasicNameValuePair("nonce", params.getNonce()));
+		nvps.add(new BasicNameValuePair("pwencode", "rsa2"));
+		nvps.add(new BasicNameValuePair("rsakv", params.getRsakv()));
+		nvps.add(new BasicNameValuePair("sp", getRsaPassWord(passWord, params)));
+		nvps.add(new BasicNameValuePair("encoding", "UTF-8"));
+		nvps.add(new BasicNameValuePair("prelt", "166"));
+		nvps.add(new BasicNameValuePair("url",
+		        "http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack"));
+		nvps.add(new BasicNameValuePair("returntype", "META"));
+
+		HttpPost post = HttpFactory.createHttpPost(Constaces.LOGIN_FIRST_URL, headers, nvps);
+		return post;
+	}
 
     public static boolean sendWeibo(BroserContent broserContent, String url, String app_src, String content, String cookie,
             String pid) {
